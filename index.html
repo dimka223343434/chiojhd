@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мессенджер Ярика</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      background-color: #272e35;
+      font-family: Arial, sans-serif;
+      color: white;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .chat-header {
+      background-color: #2a9d8f;
+      padding: 10px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .chat-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #1e2931;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      max-width: 70%;
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      word-wrap: break-word;
+      font-size: 16px;
+      transition: transform 0.3s ease;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background-color: #374151;
+    }
+
+    .user {
+      align-self: flex-end;
+      background-color: #1da1f2;
+    }
+
+    .chat-footer {
+      background-color: #2a9d8f;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+    }
+
+    .chat-footer input {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 5px;
+      outline: none;
+      font-size: 16px;
+    }
+
+    .chat-footer button {
+      margin-left: 10px;
+      background-color: #1da1f2;
+      border: none;
+      padding: 12px 16px;
+      border-radius: 5px;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    video, audio {
+      width: 100%;
+      max-width: 100%;
+      margin: 10px 0;
+    }
+
+    .choice, .shop, .theme-toggle {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .choice button, .shop button, .theme-toggle button {
+      margin: 5px;
+      padding: 12px 20px;
+      background-color: #1da1f2;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .points {
+      text-align: center;
+      margin: 10px;
+      font-size: 18px;
+    }
+
+    .secret-message {
+      animation: flash 1s infinite;
+    }
+
+    @keyframes flash {
+      0% { background-color: yellow; color: black; }
+      100% { background-color: #374151; color: white; }
+    }
+
+    .light-mode {
+      background-color: #f1f5f9;
+      color: black;
+    }
+
+    .light-mode .chat-body {
+      background-color: #f9fafb;
+    }
+
+    .light-mode .message.bot {
+      background-color: #cbd5e1;
+    }
+
+    .light-mode .message.user {
+      background-color: #3b82f6;
+    }
+
+    .light-mode .chat-footer,
+    .light-mode .chat-header {
+      background-color: #64748b;
+      color: white;
+    }
+
+    .light-mode .chat-footer input {
+      background-color: #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Шапка чата -->
+  <div class="chat-header">Чат с Яриком</div>
+
+  <!-- Переключатель темы -->
+  <div class="theme-toggle">
+    <button onclick="toggleTheme()">🌙 Переключить тему</button>
+  </div>
+
+  <!-- Тело чата -->
+  <div class="chat-body" id="chat">
+    <div class="message bot">Привет давай гулять</div>
+  </div>
+
+  <!-- Нижняя панель -->
+  <form class="chat-footer" id="chat-form">
+    <input type="text" id="input" placeholder="Сообщение..." autocomplete="off" />
+    <button type="submit">Отправить</button>
+  </form>
+
+  <!-- Видео -->
+  <div id="video-container"></div>
+
+  <!-- Выбор -->
+  <div id="choice-container" class="choice" style="display: none;">
+    <p>Вытащить Ярика из канавы?</p>
+    <button onclick="chooseYes()">Да</button>
+    <button onclick="chooseNo()">Нет</button>
+  </div>
+
+  <!-- Магазин -->
+  <div id="shop-container" class="shop" style="display: none;">
+    <h3>Магазин</h3>
+    <p id="points-display">Очки: 0</p>
+    <button onclick="buySong()">Купить песню за 100 очков</button>
+    <div id="music-controls" style="margin-top: 20px; display: none;">
+      <audio id="song-player" controls></audio><br>
+      <button onclick="playSong()">▶️ Воспроизвести</button>
+      <button onclick="pauseSong()">⏸ Пауза</button>
+    </div>
+  </div>
+
+  <!-- Секретные кнопки -->
+  <div id="secret-music" style="display: none; text-align: center; margin-top: 20px;">
+    <button onclick="playSecretSong()">🎵 Секретная песня</button>
+    <audio id="secret-song-player" src="audio/secret.mp3"></audio>
+  </div>
+
+  <!-- Мемы -->
+  <div id="meme-container"></div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('input');
+
+    const videoContainer = document.getElementById('video-container');
+    const choiceContainer = document.getElementById('choice-container');
+    const shopContainer = document.getElementById('shop-container');
+    const pointsDisplay = document.getElementById('points-display');
+    const songPlayer = document.getElementById('song-player');
+    const musicControls = document.getElementById('music-controls');
+    const secretMusic = document.getElementById('secret-music');
+    const memeContainer = document.getElementById('meme-container');
+
+    // Пути к видеофайлам
+    const videos = {
+      "Чупачупс": "video/chupa.mp4",
+      "Подготовка": "video/s.mp4",
+      "Klava": "video/klava.mp4",
+      "No": "video/no.mp4",
+      "Mama": "video/mama.mp4"
+    };
+
+    // Локальный путь к песне
+    const LOCAL_SONG_URL = "audio/b.mp3";
+    const LOCAL_SECRET_SONG_URL = "audio/secret.mp3";
+
+    let firstBotMessage = false;
+    let finalPhase = false;
+
+    // Игра
+    let points = parseInt(localStorage.getItem("points")) || 0;
+    let level = parseInt(localStorage.getItem("level")) || 1;
+    let messageCount = parseInt(localStorage.getItem("messages")) || 0;
+
+    function updatePointsDisplay() {
+      pointsDisplay.textContent = "Очки: " + points;
+    }
+
+    function addMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.className = 'message ' + sender;
+      msg.textContent = text;
+      if (text === "го гулять я хачу") {
+        msg.classList.add("secret-message");
+        secretMusic.style.display = 'block';
+      }
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    window.onload = () => {
+      setTimeout(() => {
+        addMessage("Привет давай гулять", 'bot');
+      }, 500);
+      updatePointsDisplay();
+    };
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const text = input.value.trim().toLowerCase();
+      if (!text) return;
+
+      addMessage(text, 'user');
+      messageCount++;
+      localStorage.setItem("messages", messageCount);
+
+      // Подарки за активность
+      points += 1;
+      localStorage.setItem("points", points);
+      updatePointsDisplay();
+
+      if (finalPhase && text === 'го') {
+        showVideo("Mama");
+        input.value = '';
+        return;
+      }
+
+      setTimeout(() => {
+        // Рандомные шутки
+        const randomReplies = ["я гей", "где мой чупачупс?", "чё молчишь?", "я не гей"];
+        const reply = Math.random() < 0.3 ? randomReplies[Math.floor(Math.random() * randomReplies.length)] : "";
+
+        if (text === 'го') {
+          if (!firstBotMessage) {
+            addMessage("Щас я чупачупс пососу", 'bot');
+            setTimeout(() => showVideo("Чупачупс"), 5000);
+            firstBotMessage = true;
+          } else {
+            addMessage(reply || "я гей", 'bot');
+          }
+        } else if (text === 'ты гей') {
+          addMessage("Я не гей, давай гулять", 'bot');
+        } else if (text === 'иди в жопу еврей') {
+          addMessage("давай делать вместе бабулю", 'bot');
+        } else if (text === 'секрет') {
+          addMessage("Секрет активирован!", 'bot');
+          secretMusic.style.display = 'block';
+        } else if (text === 'ты легенда') {
+          addMessage("Ты реально легенда, брат", 'bot');
+        } else if (text === 'пасхалка') {
+          addMessage("Это пасхалка! 🐣", 'bot');
+        } else if (text === 'го'.repeat(5)) {
+          addMessage("Квест выполнен! +100 очков", 'bot');
+          points += 100;
+          localStorage.setItem("points", points);
+          updatePointsDisplay();
+        } else {
+          addMessage(reply || "я гей", 'bot');
+        }
+
+        // Мемы
+        if (messageCount % 5 === 0) {
+          const meme = document.createElement('img');
+          meme.src = "memes/meme1.jpg"; // замени на свой путь
+          meme.style.width = "100%";
+          meme.style.maxWidth = "300px";
+          meme.style.marginTop = "10px";
+          memeContainer.innerHTML = "";
+          memeContainer.appendChild(meme);
+        }
+      }, 500);
+
+      input.value = '';
+    });
+
+    function showVideo(videoName) {
+      const videoPath = videos[videoName];
+      if (!videoPath) return;
+
+      const video = document.createElement('video');
+      video.src = videoPath;
+      video.controls = true;
+      video.autoplay = true;
+      video.muted = false;
+
+      videoContainer.innerHTML = '';
+      videoContainer.appendChild(video);
+      videoContainer.style.display = 'block';
+
+      video.addEventListener('ended', () => {
+        videoContainer.style.display = 'none';
+
+        if (videoName === "Чупачупс") {
+          showVideo("Подготовка");
+        } else if (videoName === "Подготовка") {
+          choiceContainer.style.display = 'block';
+        } else if (videoName === "Klava") {
+          shopContainer.style.display = 'block';
+          points += 100;
+          localStorage.setItem("points", points);
+          updatePointsDisplay();
+        } else if (videoName === "No") {
+          endGameSequence();
+        } else if (videoName === "Mama") {
+          addMessage("Игра окончена!", 'bot');
+          setTimeout(() => {
+            try {
+              window.close();
+            } catch (e) {
+              alert('Игра окончена!');
+            }
+          }, 2000);
+        }
+      });
+    }
+
+    function endGameSequence() {
+      setTimeout(() => {
+        addMessage("го гулять я хачу", 'bot');
+        finalPhase = true;
+      }, 500);
+    }
+
+    function chooseYes() {
+      choiceContainer.style.display = 'none';
+      showVideo("Klava");
+    }
+
+    function chooseNo() {
+      choiceContainer.style.display = 'none';
+      showVideo("No");
+    }
+
+    function buySong() {
+      if (points >= 100) {
+        points -= 100;
+        localStorage.setItem("points", points);
+        updatePointsDisplay();
+
+        songPlayer.src = LOCAL_SONG_URL;
+        songPlayer.load();
+        musicControls.style.display = 'block';
+
+        songPlayer.play().catch(() =>
+          alert("Не удалось воспроизвести. Нажмите ▶️ вручную.")
+        );
+      } else {
+        alert("Не хватает очков!");
+      }
+    }
+
+    function playSong() {
+      songPlayer.play();
+    }
+
+    function pauseSong() {
+      songPlayer.pause();
+    }
+
+    function playSecretSong() {
+      const player = document.getElementById('secret-song-player');
+      player.src = LOCAL_SECRET_SONG_URL;
+      player.play();
+    }
+
+    function toggleTheme() {
+      document.body.classList.toggle("light-mode");
+    }
+  </script>
+</body>
+</html>
